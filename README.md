@@ -2,6 +2,12 @@
 
 Tienda *mobile-first* con fotografías reales del llavero, lanyard, parche bordado y pegatinas.
 
+## Diseño y fotografías
+
+Interfaz compacta orientada a móvil, con los productos como protagonistas, cabecera mínima y barra de carrito siempre fija al pie de la pantalla. Cada producto muestra un carrusel de **dos imágenes**: primero una presentación de estudio oscura y después una **fotografía real**; se puede cambiar con flechas o deslizando el dedo y ampliar las fotos.
+
+Los cuatro archivos `assets/*-estudio-verificado.webp` están compuestos a partir de las fotografías originales de los propios productos; se conservan las letras, costuras y gráficos reales para evitar errores en el bordado o en los textos del diseño. Las fotografías reales siguen disponibles en `assets/*-detalle.webp`.
+
 ## Productos
 
 | Referencia | Producto | Precio | Unidad |
