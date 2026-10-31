@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f6f5f0" />
+  <meta name="theme-color" content="#08090b" />
   <meta name="description" content="Merch SDP LEMD: llaveros, parches, lanyards y pegatinas. Prepara tu pedido y paga por Bizum." />
   <title>SDP MERCH · LEMD</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
@@ -175,6 +175,59 @@
       .brandtext strong { font-size:14px; }
     }
     @media(prefers-reduced-motion:reduce) { *,*:before,*:after { transition-duration:0.01ms!important; scroll-behavior:auto!important; } }
+
+    /* Compact, product-first redesign approved 31 Oct 2026 */
+    .cart-panel { visibility:hidden; pointer-events:none; }
+    .cart-panel.open { visibility:visible; pointer-events:auto; }
+    :root { color-scheme:dark; --paper:#08090b;--white:#15171a;--ink:#f7f8f9;--muted:#a0a3a9;--border:#282c31;--accent:#ffe000;--accent2:#f3c900;--radius:15px;--shadow:0 10px 30px #0005; }
+    html,body{background:var(--paper);color:var(--ink)}
+    body{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+    .container{width:min(100% - 20px,1040px)}
+    .topbar{background:#0d0f12;border-bottom:3px solid var(--accent);position:relative}
+    .topbar-inner{height:55px;gap:8px}
+    .brand{gap:8px}.brandmark{height:32px;flex-basis:32px;border:1px solid #52575d;background:#141619;border-radius:50%;color:var(--accent);font-size:11px;letter-spacing:-.5px;box-shadow:none}
+    .brandtext{gap:2px}.brandtext strong{font-size:18px;letter-spacing:-.04em;font-style:italic;font-weight:950}.brandtext em{font-style:italic;color:var(--accent)}
+    .brandtext small{font-size:9px;letter-spacing:.15em;color:#aaa}
+    .topcart{border:0;background:transparent;color:var(--accent);font-size:12px;padding:8px;gap:3px}
+    .topcart svg{width:21px;height:21px}.topcart-count{color:#090909;background:var(--accent)}
+    .hero{display:none}
+    .section-top{margin:12px 0 10px;align-items:center}.section-top h2{font-size:15px;letter-spacing:-.02em;margin:0}.section-top p{font-size:10px;margin-top:3px;color:var(--muted)}
+    .item-count{font-size:10px;background:transparent;border:0;color:#81868d;padding:4px}
+    .catalog{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .product{background:#15171a;border:1px solid #2a2d30;border-radius:15px;box-shadow:0 2px 12px #0004;overflow:hidden;transition:none}
+    .product:hover{transform:none;box-shadow:0 2px 12px #0004}
+    .product-photo{aspect-ratio:1/1;cursor:default;border:0;background:#181a1e;position:relative;overflow:hidden}
+    .image-open{display:block;position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;background:transparent}
+    .image-open img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .15s}
+    .photo-arrow{position:absolute;z-index:2;top:50%;transform:translateY(-50%);border:0;border-radius:50%;background:#0a0b0cbc;color:white;font-family:Arial,sans-serif;font-size:29px;line-height:1;width:29px;height:31px;display:flex;align-items:center;justify-content:center;padding:0 0 4px}
+    .photo-prev{left:5px}.photo-next{right:5px}
+    .slide-count{position:absolute;right:7px;top:7px;z-index:2;background:#000a;color:white;border-radius:99px;padding:3px 7px;font-size:10px;font-weight:700;pointer-events:none}
+    .slide-dots{display:flex;gap:5px;position:absolute;bottom:8px;left:50%;transform:translateX(-50%);z-index:2;pointer-events:none}
+    .slide-dots span{width:6px;height:6px;background:#a0a3a9aa;border-radius:50%}.slide-dots .active{background:var(--accent)}
+    .product-content{padding:10px 9px 11px;gap:10px}
+    .product-main{display:flex;align-items:flex-start;justify-content:space-between;gap:5px;min-height:56px}
+    .product-name{font-size:14px;line-height:1.12;font-weight:850;letter-spacing:-.04em;margin:0 0 5px}
+    .product-desc{color:#a7abb1;font-size:10px;line-height:1.25;min-height:0;margin:0}
+    .price{background:var(--accent);color:#0d0d0d;flex:none;white-space:nowrap;font-size:15px;line-height:1;font-weight:930;letter-spacing:-.05em;border-radius:8px;padding:7px 8px}
+    .add-btn,.qty-control{height:36px;border-radius:10px}
+    .add-btn{color:var(--accent);background:transparent;border:1.5px solid var(--accent);font-size:12px;font-weight:800}
+    .qty-control{background:#232628;border:1px solid #41464a;color:#fff}.qty-control button{color:var(--accent);height:34px}.qty-control strong{font-size:13px}
+    .info-row{margin-top:12px;color:#818790;font-size:10px;line-height:1.4}.info-row svg{width:13px}
+    .footer{padding:12px 0 24px;color:#747980;font-size:10px}.footer strong{color:var(--ink)}
+    .fixed-cart{z-index:25;background:#101114;border-top:2px solid var(--accent);box-shadow:0 -10px 30px #000a;padding:7px 0 calc(7px + env(safe-area-inset-bottom))}
+    .fixed-cart-inner{gap:7px}.cart-peek-icon{height:35px;width:35px;border-radius:9px;background:#282a2e;color:var(--accent)}.cart-peek-icon svg{height:19px;width:19px}
+    .cart-peek{gap:7px}.cart-peek-label{gap:4px}.cart-peek-label strong{font-size:12px}.cart-peek-label small{font-size:10px;color:#a6a9af}
+    .expand-arrow{color:var(--accent)}.checkout-btn{height:41px;min-width:116px;padding:0 11px;border-radius:11px;background:var(--accent);color:#090909;font-size:12px}
+    .checkout-btn:disabled{background:#474b50;color:#ddd}
+    .cart-panel{background:#17191d;color:var(--ink)}.panel-head{background:#17191d}.dragline{background:#42464e}
+    .close-btn{color:var(--ink);background:#30343b}.cart-item{border-color:#32353b}.cart-thumb{border-color:#2f343a}
+    .cart-mini-qty button{background:#25282d;border-color:#424851;color:var(--ink)}
+    .payment-data{border-color:#444}.payment-line{border-color:#333}.copy-btn{background:#282d33;color:white;border-color:#494f55}
+    .primary-full{background:var(--accent);color:#08090b}.secondary-full{background:#21252a;color:var(--ink);border-color:#40454b}
+    .warning{color:#f9d69b;background:#59401855;border-color:#9b712f}.payment-intro{color:#f3dda6;background:#4d3e2055;border-color:#6d5628}
+    .toast{background:#303339;color:#fff}
+    @media(min-width:700px){.topbar-inner{height:61px}.catalog{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.section-top{margin:16px 0 13px}.product-content{padding:13px 14px 15px}.product-name{font-size:20px}.product-desc{font-size:12px}.price{font-size:20px;padding:8px 12px}.add-btn,.qty-control{height:43px}.product-main{min-height:70px}.fixed-cart{padding:9px 0}.checkout-btn{font-size:14px;min-width:180px}.cart-peek-label strong{font-size:15px}}
+    @media(max-width:355px){.container{width:min(100% - 12px,1040px)}.catalog{gap:6px}.product-content{padding:9px 7px}.product-name{font-size:12px}.product-desc{font-size:9px}.price{font-size:12px;padding:6px 5px}.checkout-btn{min-width:110px}.brandtext strong{font-size:16px}}
   </style>
 </head>
 <body>
@@ -191,10 +244,10 @@
   <header class="topbar">
     <div class="container topbar-inner">
       <a class="brand" href="#inicio" aria-label="SDP MERCH, volver al inicio">
-        <span class="brandmark">SDP</span><span class="brandtext"><strong>SDP MERCH</strong><small>LEMD · MADRID</small></span>
+        <span class="brandmark">SDP</span><span class="brandtext"><strong>SDP <em>MERCH</em></strong><small>LEMD</small></span>
       </a>
       <button class="topcart" type="button" id="top-cart" aria-label="Abrir carrito">
-        <svg><use href="#i-bag"/></svg> Mi pedido <span class="topcart-count" id="top-count">0</span>
+        <svg><use href="#i-bag"/></svg> <span class="topcart-count" id="top-count">0</span>
       </button>
     </div>
   </header>
@@ -208,13 +261,13 @@
     </section>
     <section aria-labelledby="catalog-title">
       <div class="section-top">
-        <div><h2 id="catalog-title">La colección</h2><p>Elige tus favoritos y añádelos al pedido.</p></div>
-        <span class="item-count">04 productos</span>
+        <div><h2 id="catalog-title">Objetos SDP LEMD</h2><p>Elige, añade y prepara tu Bizum</p></div>
+        <span class="item-count">4 productos</span>
       </div>
       <div class="catalog" id="catalog"></div>
       <div class="info-row"><svg><use href="#i-info"/></svg><div>Sin registro y sin pagos dentro de la web. Tu selección se guarda solo en este navegador. El pago se completa manualmente desde la aplicación de tu banco.</div></div>
     </section>
-    <footer class="footer"><strong>SDP MERCH</strong> · LEMD<br>Hecho con espíritu de equipo.</footer>
+    <footer class="footer">SDP MERCH · LEMD</footer>
   </main>
 
   <div class="fixed-cart" role="region" aria-label="Resumen del carrito">
@@ -247,10 +300,10 @@
   // Bizum no ofrece un enlace universal para prerrellenar transferencias P2P desde HTML.
   const SHOP_CONFIG = Object.freeze({ bizumPhone: '' });
   const PRODUCTS = Object.freeze([
-    {id:'L',name:'Lanyard SDP',desc:'Cinta para acreditación con mosquetón.',price:5,image:'assets/lanyard.webp',detail:['assets/lanyard-detalle.webp'],detailLabels:['Vista completa']},
-    {id:'P',name:'Parche bordado',desc:'Parche circular «No todo está bajo control».',price:5,image:'assets/parche.webp',detail:['assets/parche.webp','assets/parche-detalle.webp'],detailLabels:['Detalle','Fotografía original']},
-    {id:'Q',name:'Pegatinas',desc:'Tres pegatinas por cada pack.',price:1,image:'assets/pegatinas.webp',badge:'PACK × 3',detail:['assets/pegatinas.webp','assets/pegatinas-detalle.webp'],detailLabels:['Detalle','Fotografía original']},
-    {id:'Y',name:'Llavero bordado',desc:'Dos caras: Control Terminado / SDP LEMD.',price:5,image:'assets/llavero-anverso.webp',detail:['assets/llavero-anverso.webp','assets/llavero-reverso.webp'],detailLabels:['Cara A','Cara B']}
+    {id:'L',name:'Lanyard SDP',desc:'Cinta de cuello con mosquetón',price:5,image:'assets/lanyard-estudio-verificado.webp',detail:['assets/lanyard-estudio-verificado.webp','assets/lanyard-detalle.webp'],detailLabels:['Estudio','Fotografía real']},
+    {id:'P',name:'Parche bordado',desc:'No todo está bajo control',price:5,image:'assets/parche-estudio-verificado.webp',detail:['assets/parche-estudio-verificado.webp','assets/parche-detalle.webp'],detailLabels:['Estudio','Fotografía real']},
+    {id:'Q',name:'3 pegatinas',desc:'Pack indivisible de 3 unidades',price:1,image:'assets/pegatinas-estudio-verificado.webp',badge:'PACK × 3',detail:['assets/pegatinas-estudio-verificado.webp','assets/pegatinas-detalle.webp'],detailLabels:['Estudio','Fotografía real']},
+    {id:'Y',name:'Llavero bordado',desc:'Control Terminado · SDP LEMD',price:5,image:'assets/llavero-estudio-verificado.webp',detail:['assets/llavero-estudio-verificado.webp','assets/llavero-detalle.webp'],detailLabels:['Estudio','Fotografía real']}
   ]);
   const STORAGE_KEY='sdp-merch-cart-v1';
   const MAX_QTY=99;
@@ -273,11 +326,13 @@
   const validPhone=()=>/^\+?\d{9,15}$/.test(phone());
   function saveCart(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(cart));}catch{/* Fallo de cuota o almacenamiento deshabilitado: la sesión sigue operativa */}}
   function changeQty(id,delta){if(!(id in cart))return;cart[id]=Math.max(0,Math.min(MAX_QTY,cart[id]+delta));saveCart();render();}
+  const gallerySlides = {L:0,P:0,Q:0,Y:0};
+  function flipSlide(id,delta) {gallerySlides[id]=(gallerySlides[id]+delta+2)%2;renderCatalog();}
   function renderCatalog(){
     byId('catalog').innerHTML=PRODUCTS.map(p=>{
-      const q=cart[p.id];
+      const q=cart[p.id], idx=gallerySlides[p.id];
       const button=q===0?`<button class="add-btn" type="button" data-inc="${p.id}" aria-label="Añadir ${p.name}">${icon('plus')} Añadir</button>`:`<div class="qty-control" aria-label="Cantidad ${p.name}"><button type="button" data-dec="${p.id}" aria-label="Quitar uno de ${p.name}">−</button><strong aria-live="polite">${q}</strong><button type="button" data-inc="${p.id}" ${q>=MAX_QTY?'disabled':''} aria-label="Añadir otro ${p.name}">+</button></div>`;
-      return `<article class="product"><button type="button" class="product-photo" data-gallery="${p.id}" aria-label="Ver fotografías de ${p.name}"><img src="${p.image}" alt="${p.name}" loading="${p.id==='L'?'eager':'lazy'}" /><span class="photo-hint">${icon('expand')}</span></button><div class="product-content"><div class="product-topline"><span class="product-code">REF. ${p.id}</span>${p.badge?`<span class="product-pack">${p.badge}</span>`:''}</div><h3 class="product-name">${p.name}</h3><p class="product-desc">${p.desc}</p><div class="product-bottom"><div class="price">${euro(p.price)}${p.id==='Q'?'<small>/ pack</small>':''}</div>${button}</div></div></article>`;
+      return `<article class="product"><div class="product-photo" data-product-photo="${p.id}"><button type="button" class="image-open" data-gallery="${p.id}" aria-label="Ampliar imagen ${idx+1} de ${p.name}"><img src="${p.detail[idx]}" alt="${p.name}, ${p.detailLabels[idx].toLowerCase()}" loading="${p.id==='L'?'eager':'lazy'}" /></button><button class="photo-arrow photo-prev" type="button" data-slide="${p.id}" data-dir="-1" aria-label="Imagen anterior de ${p.name}">‹</button><button class="photo-arrow photo-next" type="button" data-slide="${p.id}" data-dir="1" aria-label="Siguiente imagen de ${p.name}">›</button><span class="slide-count">${idx+1}/2</span><div class="slide-dots"><span class="${idx===0?'active':''}"></span><span class="${idx===1?'active':''}"></span></div></div><div class="product-content"><div class="product-main"><div><h3 class="product-name">${p.name}</h3><p class="product-desc">${p.desc}</p></div><span class="price">${euro(p.price)}</span></div>${button}</div></article>`;
     }).join('');
   }
   function renderBar(){
@@ -318,12 +373,13 @@
   let toastTimer;
   function toast(message){const el=byId('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2400);}
   async function shareOrder(){const lines=[`Pedido: ${concept()}`,`Total: ${euro(totals().amount)}`,`Productos: ${PRODUCTS.filter(p=>cart[p.id]).map(p=>`${p.name} x${cart[p.id]}`).join(', ')}`];const value=lines.join('\n');if(navigator.share){try{await navigator.share({title:'SDP MERCH',text:value});}catch(e){if(e.name!=='AbortError')copyText(value);}}else copyText(value);}
-  function openGallery(id){galleryProduct=PRODUCTS.find(p=>p.id===id);if(!galleryProduct)return;lastFocus=document.activeElement;galleryIndex=0;drawGallery();byId('lightbox').classList.add('show');byId('lightbox').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';byId('close-lightbox').focus();}
+  function openGallery(id){galleryProduct=PRODUCTS.find(p=>p.id===id);if(!galleryProduct)return;lastFocus=document.activeElement;galleryIndex=gallerySlides[id];drawGallery();byId('lightbox').classList.add('show');byId('lightbox').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';byId('close-lightbox').focus();}
   function drawGallery(){const p=galleryProduct;byId('lightbox-image').src=p.detail[galleryIndex];byId('lightbox-image').alt=`${p.name}: ${p.detailLabels[galleryIndex]}`;byId('lightbox-caption').textContent=p.name;byId('gallery-switch').innerHTML=p.detail.length>1?p.detail.map((src,i)=>`<button type="button" data-gallery-index="${i}" class="${i===galleryIndex?'active':''}" aria-pressed="${i===galleryIndex}">${p.detailLabels[i]}</button>`).join(''):'';}
   function closeGallery(){byId('lightbox').classList.remove('show');byId('lightbox').setAttribute('aria-hidden','true');document.body.style.overflow=panelOpen?'hidden':'';lastFocus?.focus?.();}
   document.addEventListener('click',e=>{
     const inc=e.target.closest('[data-inc]');if(inc){changeQty(inc.dataset.inc,+1);return;}
     const dec=e.target.closest('[data-dec]');if(dec){changeQty(dec.dataset.dec,-1);return;}
+    const slide=e.target.closest('[data-slide]');if(slide){flipSlide(slide.dataset.slide,Number(slide.dataset.dir));return;}
     const photo=e.target.closest('[data-gallery]');if(photo){openGallery(photo.dataset.gallery);return;}
     const gallery=e.target.closest('[data-gallery-index]');if(gallery){galleryIndex=Number(gallery.dataset.galleryIndex);drawGallery();return;}
     const copy=e.target.closest('[data-copy]');if(copy){const v=copy.dataset.copy==='amount'?String(totals().amount).replace('.',','):copy.dataset.copy==='phone'?phone():concept();copyText(v);return;}
@@ -349,6 +405,17 @@
       else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
     }
   });
+  let swipeStart=null;
+  byId('catalog').addEventListener('touchstart',e=>{
+    const el=e.target.closest('[data-product-photo]');
+    if(el && e.touches.length===1) swipeStart={id:el.dataset.productPhoto,x:e.touches[0].clientX,y:e.touches[0].clientY};
+  },{passive:true});
+  byId('catalog').addEventListener('touchend',e=>{
+    if(!swipeStart)return;
+    const dx=e.changedTouches[0].clientX-swipeStart.x,dy=e.changedTouches[0].clientY-swipeStart.y,id=swipeStart.id;
+    swipeStart=null;
+    if(Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)*1.2){e.preventDefault();flipSlide(id,dx<0?1:-1);}
+  },{passive:false});
   render();
   </script>
 </body>
