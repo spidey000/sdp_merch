@@ -29,7 +29,14 @@ No metas credenciales, tokens o datos bancarios privados en un sitio estático. 
 
 Es suficiente subir `index.html` y la carpeta `assets/` a cualquier hosting estático con HTTPS.
 
-**GitHub Pages:** crea un repositorio, sube los archivos (el `index.html` debe estar en raíz) y entra en **Settings → Pages → Build and deployment → Deploy from a branch → main / (root) → Save**. Si se publica dentro de un subdirectorio de una URL de GitHub Pages, las rutas relativas incluidas seguirán funcionando.
+**GitHub Pages para este repositorio:** está preparado el workflow `.github/workflows/deploy-pages.yml`, que despliega automáticamente el contenido de `main` sin compilar y conserva las rutas relativas.
+
+1. Desde tu cuenta propietaria, entra en [Settings → General](https://github.com/spidey000/sdp_merch/settings), baja a **Danger Zone → Change repository visibility** y elige **Make public**.
+2. En [Settings → Pages](https://github.com/spidey000/sdp_merch/settings/pages), selecciona **Build and deployment → Source → GitHub Actions** (no `Deploy from a branch`).
+3. Ve a [Actions → Deploy SDP MERCH](https://github.com/spidey000/sdp_merch/actions/workflows/deploy-pages.yml) y pulsa **Run workflow** sobre `main` (o vuelve a ejecutar el fallo anterior).
+4. Comprueba el resultado de la ejecución. Una vez publicado correctamente, la web quedará en `https://spidey000.github.io/sdp_merch/`.
+
+**Nota:** el workflow no puede activar por sí mismo GitHub Pages con el token estándar de Actions; requiere habilitar Pages desde Settings o un token de administración específico. Mientras Pages esté deshabilitado, el paso `Configure GitHub Pages` fallará y no habrá sitio publicado.
 
 **Sin instalar nada:** abre `index.html` en el navegador para comprobar el diseño. `localStorage` puede no persistir de forma fiable con el esquema `file://`; para probar la persistencia, abre el proyecto desde un servidor local (por ejemplo, `python3 -m http.server 8080`) o desde el hosting HTTPS.
 
