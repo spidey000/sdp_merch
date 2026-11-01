@@ -7,7 +7,7 @@
     {
       "binding": "DB",
       "database_name": "sdp-merch-stock",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "bb14d751-71ad-4b38-95f8-4764fda13841",
       "migrations_dir": "migrations"
     }
   ]
