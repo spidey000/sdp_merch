@@ -306,7 +306,7 @@
   'use strict';
   // Vercel aloja las funciones privadas de Stripe y el stock en Redis.
   // Esta URL se configura tras vincular el proyecto al backend; nunca publicar claves secretas.
-  const SHOP_CONFIG = Object.freeze({ apiBase: '' /* REEMPLAZAR: https://sdp-merch-api.<tu-subdominio>.workers.dev */ });
+  const SHOP_CONFIG = Object.freeze({ apiBase: 'https://sdp-merch-api.jorge-m-1879.workers.dev' });
   const API_BASE=SHOP_CONFIG.apiBase.replace(/\/$/,'');
   const stock={remaining:null,packs:null,ready:false};
   let processing=false;
