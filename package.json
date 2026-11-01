@@ -1,0 +1,8 @@
+{
+  "name": "sdp-merch-checkout",
+  "private": true,
+  "type": "module",
+  "version": "1.1.0",
+  "scripts": { "test": "node --test worker/*.test.js" },
+  "engines": { "node": ">=22" }
+}

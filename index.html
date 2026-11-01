@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#08090b" />
-  <meta name="description" content="Merch SDP LEMD: llaveros, parches, lanyards y pegatinas. Prepara tu pedido y paga por Bizum." />
+  <meta name="description" content="Merch SDP LEMD: llaveros, parches, lanyards y pegatinas. Pago seguro con Bizum o tarjeta a través de Stripe." />
   <title>SDP MERCH · LEMD</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <style>
@@ -94,6 +94,14 @@
     .checkout-btn { border:0; background:var(--accent); color:var(--ink); border-radius:11px; height:47px; min-width:119px; padding:0 17px; font-size:13px; font-weight:900; display:flex; justify-content:center; align-items:center; gap:8px; }
     .checkout-btn svg { width:15px; height:15px; }
     .checkout-btn:disabled { background:#eae9e3; color:#a5a7a3; }
+    .stock-label{font-size:10px;color:#9ecda8;font-weight:700;margin-top:3px;display:block}
+    .stock-label.low{color:#ffdb77}.stock-label.unavailable{color:#b2b4bb}
+    .sold-out-label{position:absolute;top:10px;left:10px;z-index:5;background:#0b0c0eef;color:#fff;padding:6px 10px;border:1px solid #ffcf20;border-radius:7px;font-size:13px;letter-spacing:.07em;font-weight:900}
+    .sold-out-product .product-photo img{filter:grayscale(.65);opacity:.6}
+    .sold-out-product .add-btn{opacity:.5;pointer-events:none}
+    .stripe-hint{font-size:11px;color:#aaaeba;text-align:center;margin:9px 0 0;line-height:1.5}
+    .checkout-error{font-size:12px;color:#ffdc80;line-height:1.4;margin:12px 0}
+    .checkout-btn[aria-busy="true"],.primary-full[aria-busy="true"]{opacity:.65;pointer-events:none}
     .cart-backdrop { position:fixed; z-index:26; inset:0; background:rgba(13,21,22,.54); opacity:0; pointer-events:none; transition:opacity .22s; }
     .cart-backdrop.show { opacity:1; pointer-events:auto; }
     .cart-panel { position:fixed; z-index:27; inset:auto 0 0; background:var(--white); border-radius:24px 24px 0 0; box-shadow:0 -14px 70px rgba(8,15,15,.2); transform:translateY(105%); transition:transform .24s ease; max-height:min(87dvh,730px); display:flex; flex-direction:column; padding-bottom:env(safe-area-inset-bottom); }
@@ -296,9 +304,15 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script>
   'use strict';
-  // CONFIGURACIÓN: sustituye bizumPhone por el número de cobro real, sin espacios.
-  // Bizum no ofrece un enlace universal para prerrellenar transferencias P2P desde HTML.
-  const SHOP_CONFIG = Object.freeze({ bizumPhone: '' });
+  // Vercel aloja las funciones privadas de Stripe y el stock en Redis.
+  // Esta URL se configura tras vincular el proyecto al backend; nunca publicar claves secretas.
+  const SHOP_CONFIG = Object.freeze({ apiBase: '' /* REEMPLAZAR: https://sdp-merch-api.<tu-subdominio>.workers.dev */ });
+  const API_BASE=SHOP_CONFIG.apiBase.replace(/\/$/,'');
+  const stock={remaining:null,packs:null,ready:false};
+  let processing=false;
+  let paymentError='';
+  const apiPath=p=>`${API_BASE}${p}`;
+
   const PRODUCTS = Object.freeze([
     {id:'L',name:'Lanyard SDP',desc:'Cinta de cuello con mosquetón',price:5,image:'assets/lanyard-estudio-verificado.webp',detail:['assets/lanyard-estudio-verificado.webp','assets/lanyard-detalle.webp'],detailLabels:['Estudio','Fotografía real']},
     {id:'P',name:'Parche bordado',desc:'No todo está bajo control',price:5,image:'assets/parche-estudio-verificado.webp',detail:['assets/parche-estudio-verificado.webp','assets/parche-detalle.webp'],detailLabels:['Estudio','Fotografía real']},
@@ -322,17 +336,25 @@
   let lastFocus=null;
   const totals=()=>({units:PRODUCTS.reduce((t,p)=>t+cart[p.id],0),amount:PRODUCTS.reduce((t,p)=>t+cart[p.id]*p.price,0),unique:PRODUCTS.filter(p=>cart[p.id]>0).length});
   const concept=()=>['SDP MERCH',...PRODUCTS.filter(p=>cart[p.id]>0).map(p=>`${p.id}${cart[p.id]}`)].join(' ');
-  const phone=()=>SHOP_CONFIG.bizumPhone.replace(/\s/g,'');
-  const validPhone=()=>/^\+?\d{9,15}$/.test(phone());
+
   function saveCart(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(cart));}catch{/* Fallo de cuota o almacenamiento deshabilitado: la sesión sigue operativa */}}
-  function changeQty(id,delta){if(!(id in cart))return;cart[id]=Math.max(0,Math.min(MAX_QTY,cart[id]+delta));saveCart();render();}
+  function changeQty(id,delta){
+    if(!(id in cart))return;
+    const cap=id==='Q' && Number.isInteger(stock.packs) ? Math.min(MAX_QTY,stock.packs) : MAX_QTY;
+    if(delta>0 && cart[id]>=cap){toast('No quedan más packs disponibles');return;}
+    cart[id]=Math.max(0,Math.min(cap,cart[id]+delta));saveCart();render();
+  }
   const gallerySlides = {L:0,P:0,Q:0,Y:0};
   function flipSlide(id,delta) {gallerySlides[id]=(gallerySlides[id]+delta+2)%2;renderCatalog();}
   function renderCatalog(){
     byId('catalog').innerHTML=PRODUCTS.map(p=>{
       const q=cart[p.id], idx=gallerySlides[p.id];
-      const button=q===0?`<button class="add-btn" type="button" data-inc="${p.id}" aria-label="Añadir ${p.name}">${icon('plus')} Añadir</button>`:`<div class="qty-control" aria-label="Cantidad ${p.name}"><button type="button" data-dec="${p.id}" aria-label="Quitar uno de ${p.name}">−</button><strong aria-live="polite">${q}</strong><button type="button" data-inc="${p.id}" ${q>=MAX_QTY?'disabled':''} aria-label="Añadir otro ${p.name}">+</button></div>`;
-      return `<article class="product"><div class="product-photo" data-product-photo="${p.id}"><button type="button" class="image-open" data-gallery="${p.id}" aria-label="Ampliar imagen ${idx+1} de ${p.name}"><img src="${p.detail[idx]}" alt="${p.name}, ${p.detailLabels[idx].toLowerCase()}" loading="${p.id==='L'?'eager':'lazy'}" /></button><button class="photo-arrow photo-prev" type="button" data-slide="${p.id}" data-dir="-1" aria-label="Imagen anterior de ${p.name}">‹</button><button class="photo-arrow photo-next" type="button" data-slide="${p.id}" data-dir="1" aria-label="Siguiente imagen de ${p.name}">›</button><span class="slide-count">${idx+1}/2</span><div class="slide-dots"><span class="${idx===0?'active':''}"></span><span class="${idx===1?'active':''}"></span></div></div><div class="product-content"><div class="product-main"><div><h3 class="product-name">${p.name}</h3><p class="product-desc">${p.desc}</p></div><span class="price">${euro(p.price)}</span></div>${button}</div></article>`;
+      const isSticker=p.id==='Q';
+      const soldOut=isSticker && stock.packs===0;
+      const cap=isSticker && Number.isInteger(stock.packs) ? Math.min(MAX_QTY,stock.packs) : MAX_QTY;
+      const stockText=isSticker?`<span class="stock-label ${stock.packs===null?'unavailable':stock.packs<=10?'low':''}" aria-live="polite">${stock.packs===null?'Stock pendiente de conectar':soldOut?'Sin existencias':`${stock.packs} packs disponibles`}</span>`:'';
+      const button=q===0?`<button class="add-btn" type="button" data-inc="${p.id}" ${soldOut?'disabled':''} aria-label="Añadir ${p.name}">${soldOut?'SOLD OUT':icon('plus')+' Añadir'}</button>`:`<div class="qty-control" aria-label="Cantidad ${p.name}"><button type="button" data-dec="${p.id}" aria-label="Quitar uno de ${p.name}">−</button><strong aria-live="polite">${q}</strong><button type="button" data-inc="${p.id}" ${q>=cap?'disabled':''} aria-label="Añadir otro ${p.name}">+</button></div>`;
+      return `<article class="product ${soldOut?'sold-out-product':''}"><div class="product-photo" data-product-photo="${p.id}">${soldOut?'<span class="sold-out-label">SOLD OUT</span>':''}<button type="button" class="image-open" data-gallery="${p.id}" aria-label="Ampliar imagen ${idx+1} de ${p.name}"><img src="${p.detail[idx]}" alt="${p.name}, ${p.detailLabels[idx].toLowerCase()}" loading="${p.id==='L'?'eager':'lazy'}" /></button><button class="photo-arrow photo-prev" type="button" data-slide="${p.id}" data-dir="-1" aria-label="Imagen anterior de ${p.name}">‹</button><button class="photo-arrow photo-next" type="button" data-slide="${p.id}" data-dir="1" aria-label="Siguiente imagen de ${p.name}">›</button><span class="slide-count">${idx+1}/2</span><div class="slide-dots"><span class="${idx===0?'active':''}"></span><span class="${idx===1?'active':''}"></span></div></div><div class="product-content"><div class="product-main"><div><h3 class="product-name">${p.name}</h3><p class="product-desc">${p.desc}</p>${stockText}</div><span class="price">${euro(p.price)}</span></div>${button}</div></article>`;
     }).join('');
   }
   function renderBar(){
@@ -340,28 +362,20 @@
     byId('bar-label').textContent=units?`${units} ${units===1?'unidad':'unidades'} · ${euro(amount)}`:'Tu carrito está vacío';
     byId('bar-sub').textContent=units?'Toca para revisar tu pedido':'Añade algo que te guste';
     byId('top-count').textContent=String(units);
-    byId('bar-checkout').disabled=!units;
-    byId('bar-checkout').innerHTML=units?`Pagar ${euro(amount)} ${icon('arrow')}`:'Ver pedido '+icon('arrow');
+    byId('bar-checkout').disabled=!units || !stock.ready || processing;
+    byId('bar-checkout').innerHTML=processing?'Conectando…':!stock.ready?'Pago en preparación':units?`Pagar ${euro(amount)} ${icon('arrow')}`:'Ver pedido '+icon('arrow');
+    byId('bar-checkout').setAttribute('aria-busy',String(processing));
   }
   function renderCartPanel(){
     const {units,amount}=totals();
-    byId('panel-title').textContent=checkout?'Pagar con Bizum':'Tu pedido';
-    byId('panel-subtitle').textContent=checkout?'Datos preparados para enviar desde tu banco':`${units} ${units===1?'unidad':'unidades'} en tu carrito`;
-    if(!units){checkout=false;byId('panel-body').innerHTML='<p class="cart-empty">Tu carrito está vacío. Añade productos a la colección para empezar.</p>';return;}
-    if(checkout){
-      byId('panel-body').innerHTML=`<button class="stepback" type="button" id="back-to-cart">${icon('back')} Volver al carrito</button>
-        <div class="payment-intro">El pago se realiza <strong>en tu aplicación bancaria</strong>. Estos datos están listos para copiarlos: no se ha cobrado nada.</div>
-        <div class="payment-data">
-          <div class="payment-line"><span class="payment-line-info"><small>Importe exacto</small><strong class="big">${euro(amount)}</strong></span><button class="copy-btn" data-copy="amount" type="button">Copiar</button></div>
-          <div class="payment-line"><span class="payment-line-info"><small>Teléfono Bizum destinatario</small><strong>${validPhone()?phone():'Pendiente de configurar'}</strong></span><button class="copy-btn" data-copy="phone" type="button" ${validPhone()?'':'disabled'}>Copiar</button></div>
-          <div class="payment-line"><span class="payment-line-info"><small>Concepto</small><strong>${concept()}</strong></span><button class="copy-btn" data-copy="concept" type="button">Copiar</button></div>
-        </div>
-        ${validPhone()?'':`<div class="warning">${icon('info')} El administrador todavía no ha configurado el número de Bizum. No se puede completar el pago.</div>`}
-        <div class="pay-actions"><button class="primary-full" id="copy-all" type="button" ${validPhone()?'':'disabled'}>Copiar todos los datos ${icon('arrow')}</button><button class="secondary-full" id="share-order" type="button">Compartir resumen del pedido</button></div>
-        <p class="tiny-steps"><strong>Para pagar:</strong> abre la aplicación de tu banco → Bizum → Enviar dinero. Pega el teléfono, el importe y el concepto; después comprueba el destinatario y confirma. Esta web no puede verificar el pago ni recibe automáticamente tu pedido.</p>`;
-      return;
-    }
-    byId('panel-body').innerHTML=PRODUCTS.filter(p=>cart[p.id]>0).map(p=>`<div class="cart-item"><img class="cart-thumb" src="${p.image}" alt=""/><span class="cart-item-detail"><strong>${p.name}</strong><small>${p.id==='Q'?'Pack de 3 · ':''}${euro(p.price)} por unidad</small><span class="subtotal">${euro(p.price*cart[p.id])}</span></span><span class="cart-mini-qty"><button data-dec="${p.id}" type="button" aria-label="Quitar ${p.name}">−</button><strong>${cart[p.id]}</strong><button data-inc="${p.id}" type="button" aria-label="Añadir ${p.name}" ${cart[p.id]>=MAX_QTY?'disabled':''}>+</button></span></div>`).join('')+`<div class="cart-total"><span>Total del pedido</span><strong>${euro(amount)}</strong></div><button type="button" class="primary-full" id="go-checkout">Preparar pago con Bizum ${icon('arrow')}</button><p class="payment-note">Se abrirá el resumen del pago sin salir de esta página.</p>`;
+    byId('panel-title').textContent='Tu pedido';
+    byId('panel-subtitle').textContent=`${units} ${units===1?'unidad':'unidades'} en tu carrito`;
+    if(!units){byId('panel-body').innerHTML='<p class="cart-empty">Tu carrito está vacío. Añade productos para empezar.</p>';return;}
+    byId('panel-body').innerHTML=PRODUCTS.filter(p=>cart[p.id]>0).map(p=>`<div class="cart-item"><img class="cart-thumb" src="${p.image}" alt=""/><span class="cart-item-detail"><strong>${p.name}</strong><small>${p.id==='Q'?'Pack de 3 · ':''}${euro(p.price)} por unidad</small><span class="subtotal">${euro(p.price*cart[p.id])}</span></span><span class="cart-mini-qty"><button data-dec="${p.id}" type="button" aria-label="Quitar ${p.name}">−</button><strong>${cart[p.id]}</strong><button data-inc="${p.id}" type="button" aria-label="Añadir ${p.name}" ${p.id==='Q'&&stock.packs!==null&&cart.Q>=stock.packs?'disabled':''}>+</button></span></div>`).join('')+`<div class="cart-total"><span>Total del pedido</span><strong>${euro(amount)}</strong></div>
+      <div class="payment-data"><div class="payment-line"><span class="payment-line-info"><small>Concepto de pedido</small><strong>${concept()}</strong></span></div></div>
+      ${paymentError?`<p class="checkout-error" role="alert">${paymentError.replaceAll('<','&lt;')}</p>`:''}
+      <button type="button" class="primary-full" id="go-checkout" aria-busy="${processing}" ${!stock.ready||processing?'disabled':''}>${processing?'Conectando…':`Pagar ${euro(amount)} con tarjeta o Bizum ${icon('arrow')}`}</button>
+      <p class="stripe-hint">${stock.ready?'Pago protegido por Stripe. Seleccionarás tarjeta o Bizum en su página segura.':'El cobro está pendiente de conectar con Stripe y la base de datos.'}</p>`;
   }
   function render(){renderCatalog();renderBar();if(panelOpen)renderCartPanel();}
   function openPanel(goCheckout=false){if(!totals().units&&goCheckout)return;lastFocus=document.activeElement;panelOpen=true;checkout=goCheckout;renderCartPanel();byId('cart-backdrop').classList.add('show');byId('cart-panel').classList.add('open');byId('cart-panel').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';byId('close-panel').focus();}
@@ -382,13 +396,13 @@
     const slide=e.target.closest('[data-slide]');if(slide){flipSlide(slide.dataset.slide,Number(slide.dataset.dir));return;}
     const photo=e.target.closest('[data-gallery]');if(photo){openGallery(photo.dataset.gallery);return;}
     const gallery=e.target.closest('[data-gallery-index]');if(gallery){galleryIndex=Number(gallery.dataset.galleryIndex);drawGallery();return;}
-    const copy=e.target.closest('[data-copy]');if(copy){const v=copy.dataset.copy==='amount'?String(totals().amount).replace('.',','):copy.dataset.copy==='phone'?phone():concept();copyText(v);return;}
+
     if(e.target.closest('#top-cart')||e.target.closest('#cart-peek')){openPanel();return;}
-    if(e.target.closest('#bar-checkout')){openPanel(true);return;}
+    if(e.target.closest('#bar-checkout')){startStripeCheckout();return;}
     if(e.target.closest('#close-panel')||e.target.closest('#cart-backdrop')){closePanel();return;}
-    if(e.target.closest('#go-checkout')){checkout=true;renderCartPanel();return;}
-    if(e.target.closest('#back-to-cart')){checkout=false;renderCartPanel();return;}
-    if(e.target.closest('#copy-all')){copyText(`Destinatario: ${phone()}\nImporte: ${euro(totals().amount)}\nConcepto: ${concept()}`);return;}
+    if(e.target.closest('#go-checkout')){startStripeCheckout();return;}
+
+
     if(e.target.closest('#share-order')){shareOrder();return;}
     if(e.target.closest('#close-lightbox')){closeGallery();return;}
     if(e.target.id==='lightbox'){closeGallery();}
@@ -416,7 +430,55 @@
     swipeStart=null;
     if(Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)*1.2){e.preventDefault();flipSlide(id,dx<0?1:-1);}
   },{passive:false});
+  async function refreshStock(){
+    if(!API_BASE){stock.ready=false;stock.packs=null;stock.remaining=null;render();return;}
+    try {
+      const response=await fetch(apiPath('/api/stock'),{headers:{Accept:'application/json'},cache:'no-store',signal:AbortSignal.timeout(12000)});
+      if(!response.ok)throw new Error('Inventario no disponible');
+      const data=await response.json();
+      stock.ready=Boolean(data.ready);
+      stock.remaining=Number.isInteger(data.remaining)?data.remaining:null;
+      stock.packs=Number.isInteger(data.packs)?data.packs:null;
+      if(stock.packs!==null && cart.Q>stock.packs){cart.Q=stock.packs;saveCart();toast('Hemos ajustado las pegatinas al stock disponible');}
+    }catch(error){stock.ready=false;stock.packs=null;stock.remaining=null;console.warn('Stock no disponible',error.message)}
+    render();
+  }
+  async function startStripeCheckout(){
+    if(processing || !totals().units)return;
+    if(!stock.ready){toast('El pago seguro aún no está disponible');return;}
+    processing=true;paymentError='';render();
+    try{
+      const response=await fetch(apiPath('/api/checkout'),{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cart}),signal:AbortSignal.timeout(20000)
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'No se pudo iniciar el pago');
+      if(!data.url?.startsWith('https://checkout.stripe.com/'))throw new Error('Destino de pago no válido');
+      window.location.assign(data.url);
+    }catch(error){
+      paymentError=error.message;toast(error.message);processing=false;await refreshStock();
+    }
+  }
+  async function checkReturn(){
+    const params=new URLSearchParams(window.location.search);
+    const status=params.get('payment'),id=params.get('session_id');
+    if(!status)return;
+    if(status==='cancel')toast('Pago cancelado. Tu carrito sigue guardado.');
+    if(status==='success'&&id&&API_BASE){
+      try{
+        const r=await fetch(apiPath('/api/order?session_id='+encodeURIComponent(id)),{cache:'no-store'});
+        const data=await r.json();
+        if(data.paid){cart=Object.fromEntries(PRODUCTS.map(p=>[p.id,0]));saveCart();render();toast('¡Pago confirmado! Muchas gracias.');}
+        else toast('El pago está pendiente de confirmación.');
+      }catch{toast('Comprueba la confirmación del pago en Stripe.');}
+    }
+    window.history.replaceState({},'',window.location.pathname+window.location.hash);
+    await refreshStock();
+  }
   render();
+  refreshStock().then(checkReturn);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshStock()});
+  setInterval(()=>{if(!document.hidden)refreshStock()},30000);
   </script>
 </body>
 </html>

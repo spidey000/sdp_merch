@@ -1,78 +1,122 @@
-# SDP MERCH — tienda estática
+# SDP MERCH
 
-Tienda *mobile-first* con fotografías reales del llavero, lanyard, parche bordado y pegatinas.
+Tienda **mobile-first** sin servidor de frontend: https://spidey000.github.io/sdp_merch/
 
-## Diseño y fotografías
+- Cuatro productos: `L` lanyard 5 €, `P` parche 5 €, `Q` pack de 3 pegatinas 1 € y `Y` llavero 5 €.
+- Carrito persistente en `localStorage`, fijo abajo, sin cuentas de usuario.
+- Dos fotos por producto (imagen de estudio y foto real).
+- Cobro mediante **Stripe Checkout** alojado (tarjeta y Bizum), con precios e importe calculados **en el servidor**.
+- Concepto en metadatos y descripción de Stripe: `SDP MERCH L1 P2 Q3 Y1`. *El texto visible en el extracto del banco depende de Stripe/Bizum y no está garantizado.*
+- **Stock físico compartido de 1.000 pegatinas**, descontando 3 por pack Q. Se pueden vender 333 packs; quedará una pegatina suelta sin vender. Cuando queden menos de 3 unidades, la web indica `SOLD OUT`.
 
-Interfaz compacta orientada a móvil, con los productos como protagonistas, cabecera mínima y barra de carrito siempre fija al pie de la pantalla. Cada producto muestra un carrusel de **dos imágenes**: primero una presentación de estudio oscura y después una **fotografía real**; se puede cambiar con flechas o deslizando el dedo y ampliar las fotos.
+## Arquitectura
 
-Los cuatro archivos `assets/*-estudio-verificado.webp` están compuestos a partir de las fotografías originales de los propios productos; se conservan las letras, costuras y gráficos reales para evitar errores en el bordado o en los textos del diseño. Las fotografías reales siguen disponibles en `assets/*-detalle.webp`.
-
-## Productos
-
-| Referencia | Producto | Precio | Unidad |
-|---|---|---:|---|
-| L | Lanyard | 5 € | 1 unidad |
-| P | Parche bordado | 5 € | 1 unidad |
-| Q | Pegatinas | 1 € | **Pack de 3** (no se vende suelta) |
-| Y | Llavero | 5 € | 1 unidad |
-
-El concepto de pago se genera en el orden de las referencias presentes, sin incluir artículos con cantidad cero, como `SDP MERCH L2 P1 Q3 Y1`. Aquí `Q3` son **3 packs = 9 pegatinas**.
-
-## Configuración imprescindible antes de publicar
-
-En `index.html`, busca:
-
-```js
-const SHOP_CONFIG = Object.freeze({ bizumPhone: '' });
+```
+GitHub Pages (HTML, JS, CSS, fotos) ───→ Cloudflare Worker (API privada)
+                                            ├── Stripe Checkout / webhook
+                                            └── Cloudflare D1 (SQLite: stock/reservas)
 ```
 
-Sustituye la cadena vacía por el número de móvil real que recibirá el pago (por ejemplo, `bizumPhone: '6XXXXXXXX'`, cambiando las X por cifras reales). Hasta entonces, el flujo de pago mostrará **Pendiente de configurar** y deshabilitará copiar el destinatario. No se ha introducido un teléfono de ejemplo funcional para evitar pagos por error.
+No se puede descontar stock entre compradores usando únicamente `localStorage` o archivos estáticos de GitHub Pages. Stripe no debe recibir peticiones con claves secretas desde el navegador. La API de Cloudflare se prepara en `worker/`, pero **no recibe pagos hasta que se conecte una cuenta Stripe, se cree la base D1 y se publique el Worker**.
 
-No metas credenciales, tokens o datos bancarios privados en un sitio estático. Un teléfono de cobro publicado será visible para cualquiera que visite la web.
+**No uses Vercel Hobby para la pasarela de esta tienda comercial:** sus condiciones restringen Hobby a uso no comercial. Cloudflare Workers + D1 evita exigir una suscripción Vercel Pro para el backend.
 
-## Cómo ponerla online
+## Configuración inicial (desde tu ordenador, una sola vez)
 
-Es suficiente subir `index.html` y la carpeta `assets/` a cualquier hosting estático con HTTPS.
+Requisitos: una cuenta de [Stripe](https://dashboard.stripe.com/) con Bizum habilitado y una cuenta de [Cloudflare](https://dash.cloudflare.com/) con Workers.
 
-**GitHub Pages para este repositorio:** está preparado el workflow `.github/workflows/deploy-pages.yml`, que despliega automáticamente el contenido de `main` sin compilar y conserva las rutas relativas.
+1. Abre una terminal en `worker/` y autentícate:
 
-1. Desde tu cuenta propietaria, entra en [Settings → General](https://github.com/spidey000/sdp_merch/settings), baja a **Danger Zone → Change repository visibility** y elige **Make public**.
-2. En [Settings → Pages](https://github.com/spidey000/sdp_merch/settings/pages), selecciona **Build and deployment → Source → GitHub Actions** (no `Deploy from a branch`).
-3. Ve a [Actions → Deploy SDP MERCH](https://github.com/spidey000/sdp_merch/actions/workflows/deploy-pages.yml) y pulsa **Run workflow** sobre `main` (o vuelve a ejecutar el fallo anterior).
-4. Comprueba el resultado de la ejecución. Una vez publicado correctamente, la web quedará en `https://spidey000.github.io/sdp_merch/`.
+   ```sh
+   npx wrangler@latest login
+   npx wrangler@latest d1 create sdp-merch-stock
+   ```
 
-**Nota:** el workflow no puede activar por sí mismo GitHub Pages con el token estándar de Actions; requiere habilitar Pages desde Settings o un token de administración específico. Mientras Pages esté deshabilitado, el paso `Configure GitHub Pages` fallará y no habrá sitio publicado.
+2. Copia el `database_id` que muestra Wrangler y reemplaza `REPLACE_WITH_D1_DATABASE_ID` en `worker/wrangler.jsonc`. Usa la misma base D1 en producción.
 
-**Sin instalar nada:** abre `index.html` en el navegador para comprobar el diseño. `localStorage` puede no persistir de forma fiable con el esquema `file://`; para probar la persistencia, abre el proyecto desde un servidor local (por ejemplo, `python3 -m http.server 8080`) o desde el hosting HTTPS.
+3. Inicializa las tablas y el stock **una única vez**:
 
-## Cómo funciona
+   ```sh
+   npx wrangler@latest d1 migrations apply sdp-merch-stock --remote
+   ```
 
-- El carrito se almacena en `localStorage` bajo la clave `sdp-merch-cart-v1`.
-- El carrito queda en la misma página: barra fija inferior, edición de cantidades y panel de resumen; no hay navegación a un checkout independiente.
-- Las cantidades van de 0 a 99 por producto, y el total se calcula en el navegador.
-- Al continuar se muestran destinatario, importe y concepto y se ofrece copiar los valores o compartir el resumen.
-- **No se hace ningún cobro, no se abre automáticamente un Bizum y no se verifica un pago.**
-- El carrito persiste **en cada navegador/dispositivo individual**, pero no se sincroniza entre un móvil y un ordenador porque no hay backend ni identidad compartida.
-- No existe inventario, pedidos registrados, gestión de envíos, administración ni confirmación automática. Es necesario acordar con el cliente cómo comunicar la compra y cómo se entrega.
+   La migración `0001_initial.sql` crea las tablas e introduce **1.000 pegatinas físicas**. No uses una segunda base de datos para ventas reales ni reinicies el stock mediante una nueva migración.
 
-## Límite de Bizum
+4. En el panel de Stripe, activa **tarjetas y Bizum**. El acceso a Bizum está sujeto a los requisitos y aprobación de Stripe. Configura las claves **en Cloudflare, nunca en este repositorio**:
 
-No existe un formato público universal y documentado de enlace `bizum://...` que permita abrir la app bancaria predeterminada y prerrellenar teléfono, importe y concepto para transferencias entre particulares. No debe fingirse esa integración con enlaces inventados.
+   ```sh
+   npx wrangler@latest secret put STRIPE_SECRET_KEY
+   npx wrangler@latest deploy
+   ```
 
-Para un botón real de **pago online con Bizum** que lleve la transacción y permita confirmarla, la persona vendedora tiene que contratar el servicio de pago para comercios con su banco y usar una pasarela compatible. La mayoría de integraciones requiere endpoints seguros del proveedor, un servicio de terceros o un backend. Una página estática podría redirigir a un enlace de cobro **ya creado y alojado por un proveedor**, pero un importe variable por carrito generalmente requiere crear enlaces de pago dinámicos desde un sistema autenticado.
+5. Wrangler mostrará la URL pública del Worker, por ejemplo `https://sdp-merch-api.<tu-subdominio>.workers.dev`. En Stripe → Developers → Webhooks → Add destination, usa:
 
-Fuentes oficiales:
-- https://bizum.com/es/metodo-de-pago-online/
-- https://bizum.com/es/como-funciona/
-- https://bizum.com/es/faqs/como-puedo-incluir-el-boton-de-bizum-en-la-web-de-mi-empresa-cuales-son-las-condiciones/
+   ```
+   https://sdp-merch-api.<tu-subdominio>.workers.dev/api/stripe-webhook
+   ```
 
-## Estructura
+   Suscribe el webhook a estos eventos:
 
-```text
-index.html      interfaz, estilos y lógica (HTML/CSS/JS puros)
-assets/         fotos comprimidas WebP y favicon
-README.md       instrucciones
+   - `checkout.session.completed`
+   - `checkout.session.async_payment_succeeded`
+   - `checkout.session.async_payment_failed`
+   - `checkout.session.expired`
+
+   Copia el **signing secret** del webhook (`whsec_...`) directamente a Cloudflare:
+
+   ```sh
+   npx wrangler@latest secret put STRIPE_WEBHOOK_SECRET
+   npx wrangler@latest deploy
+   ```
+
+   El proyecto estará disponible para pruebas cuando ambos secretos y la base de datos estén configurados.
+
+6. En `index.html`, localiza `SHOP_CONFIG.apiBase` y escribe allí la URL exacta del Worker **sin barra final**, por ejemplo:
+
+   ```js
+   const SHOP_CONFIG = Object.freeze({ apiBase: 'https://sdp-merch-api.<tu-subdominio>.workers.dev' });
+   ```
+
+   Haz `git push` a `main` para actualizar GitHub Pages. Las imágenes no necesitan moverse.
+
+7. Primero usa las claves y webhook de **modo prueba** de Stripe, y comprueba que un pago de prueba modifica el stock **solo una vez**. Para vender realmente, sustituye los secretos por los de modo real y configura el webhook de modo real. **No reproduzcas compras reales desde el modo prueba.**
+
+### Comprobaciones
+
+- `GET /api/stock` devuelve `{ "ready": true, "remaining": 1000, "packs": 333 }` con el sistema configurado. Si `ready:false`, no se ofrecen pagos.
+- Añadir un pack reserva **3 unidades** durante aproximadamente 35 minutos; Stripe abre el checkout seguro con tarjeta y Bizum.
+- Si la compra se paga, el webhook firma y confirma la operación; si expira o falla, se libera stock. Reservas abandonadas se reconcilian cuando se solicita stock o se inicia otro pedido.
+- El webhook es idempotente: los reintentos no descuentan dos veces. El frontend consulta el pago en Stripe y no vacía el carrito por visitar simplemente la URL de éxito.
+- El precio, cantidad máxima (99 por producto) y disponibilidad se validan de nuevo en el Worker; los valores enviados desde el navegador **nunca** se toman como precios fiables.
+
+### Control administrativo del stock
+
+Una vez creada la base, puedes consultar unidades físicas con:
+
+```sh
+npx wrangler@latest d1 execute sdp-merch-stock --remote --command "SELECT * FROM inventory"
 ```
 
-No se necesitan `npm install`, frameworks, dependencias externas ni build.
+Para una reposición real, ajusta el número de pegatinas **físicas disponibles** (no packs). Ejemplo de añadir 60 unidades:
+
+```sh
+npx wrangler@latest d1 execute sdp-merch-stock --remote --command "UPDATE inventory SET available=available+60 WHERE sku='Q'"
+```
+
+No contabilices como disponibles unidades que estén ya reservadas en checkouts pendientes. Lleva una conciliación con el panel de pagos de Stripe antes de hacer ajustes.
+
+## Desarrollo y tests
+
+`npm test` ejecuta pruebas sin claves ni red utilizando SQLite local (`node:sqlite`, Node 22+). Se comprueban precios, packs de 3, reservas atómicas, liberación idempotente y firma de webhooks.
+
+Si se pierden las credenciales o el Worker está caído, el pago se deshabilita; la tienda sigue mostrando el catálogo y el carrito local.
+
+## Pendiente para recibir pagos reales
+
+- Conectar Stripe y habilitar **Bizum** y tarjetas en la cuenta de comercio.
+- Crear D1, aplicar migración y desplegar Worker.
+- Configurar los secretos directamente en Cloudflare y dar de alta el webhook en Stripe.
+- Configurar en `index.html` la URL real del Worker.
+- Definir las condiciones de entrega, contacto, devoluciones y datos comerciales antes de abrir ventas al público.
+
+Ninguna clave privada ni número bancario debe subirse a GitHub.
