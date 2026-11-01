@@ -9,6 +9,18 @@ Tienda **mobile-first** sin servidor de frontend: https://spidey000.github.io/sd
 - Concepto en metadatos y descripción de Stripe: `SDP MERCH L1 P2 Q3 Y1`. *El texto visible en el extracto del banco depende de Stripe/Bizum y no está garantizado.*
 - **Stock físico compartido de 1.000 pegatinas**, descontando 3 por pack Q. Se pueden vender 333 packs; quedará una pegatina suelta sin vender. Cuando queden menos de 3 unidades, la web indica `SOLD OUT`.
 
+## Estado real (1 de noviembre de 2026)
+
+- ✅ **GitHub Pages** desplegado desde `main`.
+- ✅ **Cloudflare Worker** `sdp-merch-api` publicado en `https://sdp-merch-api.jorge-m-1879.workers.dev`.
+- ✅ **Base D1** `sdp-merch-stock` creada con jurisdicción **UE**, ID `bb14d751-71ad-4b38-95f8-4764fda13841`.
+- ✅ Inventario inicial: **1.000 pegatinas físicas** (333 packs de tres + una pegatina suelta).
+- ✅ Frontend configurado para consultar `/api/stock` en la API de Cloudflare.
+- ⏳ **Stripe no está conectado**: faltan `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` en los secretos del Worker, activar métodos de pago y registrar `/api/stripe-webhook` en Stripe.
+- 🔒 Hasta completar lo anterior, `ready:false` desactiva la compra; no aceptar pagos es el comportamiento seguro.
+
+**No vuelvas a ejecutar la migración inicial creando una base distinta:** el stock real reside en la base identificada arriba. Nunca publiques claves Stripe en GitHub.
+
 ## Arquitectura
 
 ```
